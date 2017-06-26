@@ -3,6 +3,7 @@
 %
 %%      Modified by:  (Javier Porobic)  %%
 %%      Based on Jeff Dunn code '2009'  %%
+%% OFES VERSION
 % INPUT
 %   vert    Corners of the model
 %   pt1    [nfc 2]  x,y of start point of each face
@@ -24,12 +25,15 @@
 %
 % USAGE: [T,bxid,bxnet] = transport_curvi(pt1,pt2,lr,dinc,rimn);
 
-function [T, tims] = transport_JFRE(vert, pt1, pt2, dlev, dinc, rimn, nfile, year, fnm);
+function [T, tims] = transport_JFRE(vert, pt1, pt2, dlev, dinc, rimn, nfile, year, ...
+                                    fnm, gnc);
     %% Global Variables  %%
     nc   = netcdf(fnm);
+    gncf = netcdf(gnc)
     dint = diff(dlev);
     nlay = length(dint);
-    tims = nc{'scrum_time'}(:);
+    tims = nc{'time'}(:);
+
     ntm  = length(tims);
     rimx = 400;
     if nargin<5 | isempty(rimn)
@@ -39,20 +43,17 @@ function [T, tims] = transport_JFRE(vert, pt1, pt2, dlev, dinc, rimn, nfile, yea
     if nargin < 4 | isempty(dinc)
         dinc = 0.1;
     end
-    if nfile < 10
-        nfile = (['0', num2str(nfile)]);
-    else
-        nfile = num2str(nfile);
-    end
+    nfile = num2str(nfile);
+
     file1 = ([num2str(year),'_JFRE_first_Step.mat']);
     if ~exist(file1, 'file')  % This part need to be run only ones. its related
                               % with the general model configuration.
         disp(['Using hydro file ' fnm]);
-        gridDepth   = nc{'h'};
-        gridDepth   = nc{'h'}(:, :);
+        gridDepth   = nc{'lev'};
+        gridDepth   = gncf{'ht'}(:, :);
         rho_lo      = nc{'lon_rho'}(:,:);
         rho_la      = nc{'lat_rho'}(:,:);
-        sigmaValues = 1 : 40;               % this is the number of sigma-values layers
+        sigmaValues = nc{'lev'};;               % this is the number of sigma-values layers
         ang         = nc{'angle'}(:,:);
 
         %% this aproximation give me the approx depth at any sigma point  %%
