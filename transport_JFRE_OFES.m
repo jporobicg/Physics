@@ -25,15 +25,14 @@
 %
 % USAGE: [T,bxid,bxnet] = transport_curvi(pt1,pt2,lr,dinc,rimn);
 
-function [T, tims] = transport_JFRE(vert, pt1, pt2, dlev, dinc, rimn, nfile, year, ...
-                                    fnm, gnc);
+function [T, tims] = transport_JFRE_OFES(vert, pt1, pt2, dlev, dinc, rimn, year, ...
+                                         fnm, gnc);
     %% Global Variables  %%
     nc   = netcdf(fnm);
-    gncf = netcdf(gnc)
+    gncf = netcdf(gnc);
     dint = diff(dlev);
     nlay = length(dint);
     tims = nc{'time'}(:);
-
     ntm  = length(tims);
     rimx = 400;
     if nargin<5 | isempty(rimn)
@@ -43,35 +42,35 @@ function [T, tims] = transport_JFRE(vert, pt1, pt2, dlev, dinc, rimn, nfile, yea
     if nargin < 4 | isempty(dinc)
         dinc = 0.1;
     end
-    nfile = num2str(nfile);
-
     file1 = ([num2str(year),'_JFRE_first_Step.mat']);
     if ~exist(file1, 'file')  % This part need to be run only ones. its related
                               % with the general model configuration.
         disp(['Using hydro file ' fnm]);
-        gridDepth   = nc{'lev'};
+        %% Mods
         gridDepth   = gncf{'ht'}(:, :);
-        rho_lo      = nc{'lon_rho'}(:,:);
-        rho_la      = nc{'lat_rho'}(:,:);
-        sigmaValues = nc{'lev'};;               % this is the number of sigma-values layers
-        ang         = nc{'angle'}(:,:);
+        gridDepth(gridDepth == -999000000) = nan;
+        rho_lo      = nc{'lon'}(:,:) - 360;
+        rho_la      = nc{'lat'}(:,:);
+        rho_lo      = repmat(rho_lo.', length(rho_la), 1);
+        rho_la      = repmat(rho_la, 1, size(rho_lo, 2));
+        sigmaValues = nc{'lev'}(:,:);       % this is the number of sigma-values layers
 
         %% this aproximation give me the approx depth at any sigma point  %%
-        gridLayerDepths = zeros(40, size(gridDepth, 1), size(gridDepth, 2));
-        for i = 1:size(gridDepth, 1)
-            for j = 1:size(gridDepth, 2)
-                gridLayerDepths( :,  i, j) = sigma2zeta(gridDepth(i, j), 20, 5 , 0.6, 40) ...
+        gridLayerDepths = zeros(length(sigmaValues), size(gridDepth, 1), size(gridDepth, 2));
+        for i = 1 : size(gridDepth, 1)
+            for j = 1 : size(gridDepth, 2)
+                gridLayerDepths( :,  i, j) = sigma2zeta(gridDepth(i, j), 20, 5 , 0.6, length(sigmaValues)) ...
                     *  - 1;
             end
         end
-        layerValues = nan(nlay, size(sigmaValues, 2), size(gridDepth, 1), size(gridDepth, 2));
-        for layer = 1:nlay
-            for i = 1:size(gridDepth, 1)
-                for j = 1:size(gridDepth, 2)
-                    for k = 1:size(sigmaValues, 2)
+        layerValues = nan(nlay, length(sigmaValues), size(gridDepth, 1), size(gridDepth, 2));
+        for layer = 1 : nlay
+            for i = 1 : size(gridDepth, 1)
+                for j = 1 : size(gridDepth, 2)
+                    for k = 1 : length(sigmaValues)
                         minLayer = dlev(layer);
                         maxLayer = dlev(layer + 1);
-                        if k == 40
+                        if k == length(sigmaValues)
                             minSigma = 0;
                         else
                             minSigma = gridLayerDepths(k + 1, i, j);
@@ -84,7 +83,7 @@ function [T, tims] = transport_JFRE(vert, pt1, pt2, dlev, dinc, rimn, nfile, yea
                 end
             end
         end
-        save(file1,  'gridLayerDepths', 'gridDepth', 'sigmaValues', 'rho_lo', 'rho_la', 'layerValues', 'ang')
+        save(file1,  'gridLayerDepths', 'gridDepth', 'sigmaValues', 'rho_lo', 'rho_la', 'layerValues')
     else
         disp(['using exiting data - ', file1])
         load(file1)
@@ -94,16 +93,13 @@ function [T, tims] = transport_JFRE(vert, pt1, pt2, dlev, dinc, rimn, nfile, yea
     ndps  = length(sigmaValues);
     nfc   = size(pt1, 1);
     T     = repmat(nan, [nfc ntm nlay]);
-    %    bxnet = zeros(nbox, ntm, nlay);
-    %    x     = [pt1(:,1); pt2(:,1)];
-    %    y     = [pt1(:,2); pt2(:,2)];
     file2=([num2str(year),'_JFRE_second_Step.mat']);
     if ~exist(file2, 'file')  % This part need to be run only ones. its related
                               % with the general model configuration.
         disp('Creating new file JFRE_Second_Step.mat')
         % Prepare the integration grid for each face
         ngrd = 0;
-        for ifc = 1:nfc  % Number of faces
+        for ifc = 1 : nfc  % Number of faces
             x  = [pt1(ifc,1) pt2(ifc,1)];
             y  = [pt1(ifc,2) pt2(ifc,2)];
             yd = y(2) - y(1); %% Distance between points
@@ -142,7 +138,7 @@ function [T, tims] = transport_JFRE(vert, pt1, pt2, dlev, dinc, rimn, nfile, yea
                     xi   = xd / rinc;
                     xn   = xi / cosd(Y(1));
                     X(1) = x(1) + xn / 2;
-                    for gg = 2:ninc
+                    for gg = 2 : ninc
                         X(gg) = X(gg-1) + xi / cosd(Y(gg));
                     end
                     % Correcting the last X
@@ -171,46 +167,28 @@ function [T, tims] = transport_JFRE(vert, pt1, pt2, dlev, dinc, rimn, nfile, yea
         load(file2)
     end
 
-
-    %     file2=([num2str(year), nfile,'_JFRE_second_Step.mat'])
-    %if ~exist(file2, 'file')
-
     %% Creation of the Final File %%
-    file3 = ([num2str(year), nfile, '_JFRE_third_Step.mat']);
+    file3 = ([num2str(year), '_JFRE_third_Step.mat']);
     if ~exist(file3, 'file')
         disp('Creating new file JFRE_third_Step.mat')
         %% read steps inside the document  %%
         for id = 1 : ntm
-            u  = squeeze(nc{'u'} (id, :, :, :));
-            v  = squeeze(nc{'v'} (id, :, :, :));
-            for k = 1 : size(sigmaValues, 2)
-                uSlice = squeeze(u(k, :, :));
-                vSlice = squeeze(v(k, :, :));
-                %% Passing from sigma coordinate to rho points
-                uSlice = av2(uSlice')';
-                vSlice = av2(vSlice);
-                uSlice = uSlice(:,[1 1:end end]); % pad to correct dimension with NaNs at edges
-                uSlice(:,[1 end]) = NaN;
-                vSlice = vSlice([1 1:end end],:);
-                vSlice([1 end],:) = NaN;
-                [uNew(k, :, :), vNew(k, :, :)] = rot2D(uSlice(:, :), vSlice(:, :), ang(:, :));
-            end
-            v     = double(vNew);
-            u     = double(uNew);
-            U     = zeros(nlay,ngrd);
-            V     = zeros(nlay,ngrd);
+            u     = squeeze(nc{'u'} (id, :, :, :));
+            v     = squeeze(nc{'v'} (id, :, :, :));
+            U     = zeros(nlay, ngrd);
+            V     = zeros(nlay, ngrd);
             udata = squeeze(u);
             vdata = squeeze(v);
             %% U an V devided by layer,  based in the Sigma Value
-            for layer = 1:nlay
-                for k = 1:size(sigmaValues, 2)
+            for layer = 1 : nlay
+                for k = 1 : length(sigmaValues)
                     uData_new(layer, k, :, :) = squeeze(udata(k, :, :)) .* squeeze(layerValues(layer, k, :, :));
                     vData_new(layer, k, :, :) = squeeze(vdata(k, :, :)) .* squeeze(layerValues(layer, k, :, :));
                 end
             end
             final_uData = squeeze(nanmean(uData_new, 2));
             final_vData = squeeze(nanmean(vData_new, 2));
-            for layer = 1:nlay
+            for layer = 1 : nlay
                 layer_u_data = squeeze(final_uData(layer, :, :));
                 layer_v_data = squeeze(final_vData(layer, :, :));
                 %% removind the Nans from U and V
