@@ -28,6 +28,8 @@ sal    = nc{'salinity'}(:,:);
 tem    = nc{'temp'}(:,:);
 h      = ncg{'ht'}(:);
 nc_t   = nc{'time'}(:);
+nc_t   = nc_t  - 693961; % days since 1900 - 01 - 01
+nc_t   = nc_t * 86400; % time in seconds
 %% removing nan and fill values
 v(v  == -999000000 | isnan(v)) = 0;
 u(u  == -999000000 | isnan(u)) = 0;
@@ -48,7 +50,13 @@ temp_rho = interpn(time, lev, lat, lon, tem, rho_time, rho_lev, rho_lat, rho_lon
 sal_rho  = interpn(time, lev, lat, lon, sal, rho_time, rho_lev, rho_lat, rho_lon);
 h        = interpn(squeeze(lat(1, 1,  : ,  : )), squeeze(lon(1, 1,  : ,  : )), h, squeeze(rho_lat(1, 1,  : ,  : )), squeeze(rho_lon(1, 1,  : ,  : )));
 mask     = h ; mask(mask < 0 | isnan(mask)) = 0; mask(mask > 0) = 1;
-
+%% from cm/s to m/s
+v_rho    = v_rho / 100;
+u_rho    = u_rho / 100;
+w_rho    = w_rho / 100;
+%% creating a fake z - value
+zeta     = squeeze(v_rho(:, 1, :, :)) * 0;
+zeta     = zeta  + 0.1;
 %% removing NAs
 v_rho(isnan(v_rho))       = 0;
 u_rho(isnan(u_rho))       = 0;
@@ -65,11 +73,11 @@ ncdim('time', size(time, 1), nc_new);
 ncdim('levels', size(lev, 2), nc_new);
 %% the variables dimention is var[time, lev, eta, Xi]
 %% VAR AND ATRIBUTES
-%% time
-nc_new{'time'}            = ncdouble('time');
-nc_new{'time'}.long_name  = 'time';
-nc_new{'time'}.units      = ncchar('days since 1-1-1 00:00:0.0');
-nc_new{'time'}.grads_step = ncchar('1mo');
+%% time_from
+nc_new{'scrum_time'}            = ncdouble('time');
+nc_new{'scrum_time'}.long_name  = 'scrum_time';
+nc_new{'scrum_time'}.units      = ncchar('seconds since 1900-01-01 00:00:0.0');
+nc_new{'scrum_time'}.grads_step = ncchar('seconds');
 %% mask
 nc_new{'mask'}           = ncfloat('eta_rho', 'xi_rho');
 nc_new{'mask'}.long_name = ncchar('mask on RHO-points');
@@ -93,17 +101,17 @@ nc_new{'lon_rho'}.field     = ncchar('lon_rho, scalar');
 %% V - velocity component
 nc_new{'v'}           = ncfloat('time', 'levels', 'eta_rho', 'xi_rho');
 nc_new{'v'}.long_name = ncchar('averaged v-momentum component');
-nc_new{'v'}.units     = ncchar('centimetre second-1');
+nc_new{'v'}.units     = ncchar('meter second-1');
 nc_new{'v'}.field     = ncchar('v-velocity, scalar, series');
 %% U - velocity component
 nc_new{'u'}           = ncfloat('time', 'levels', 'eta_rho', 'xi_rho');
 nc_new{'u'}.long_name = ncchar('averaged u-momentum component');
-nc_new{'u'}.units     = ncchar('centimetre second-1');
+nc_new{'u'}.units     = ncchar('meter second-1');
 nc_new{'u'}.field     = ncchar('v-velocity, scalar, series');
 %% W - velocity component
 nc_new{'w'}           = ncfloat('time', 'levels', 'eta_rho', 'xi_rho');
 nc_new{'w'}.long_name = ncchar('averaged vertically v-momentum component');
-nc_new{'w'}.units     = ncchar('centimetre second-1');
+nc_new{'w'}.units     = ncchar('meter second-1');
 nc_new{'w'}.field     = ncchar('w-velocity, scalar, series');
 %% Salinity
 nc_new{'salinity'}            = ncfloat('time', 'levels', 'eta_rho', 'xi_rho');
@@ -115,8 +123,13 @@ nc_new{'temp'}            = ncfloat('time', 'levels', 'eta_rho', 'xi_rho');
 nc_new{'temp'}.long_name  = ncchar('potential temperature [c]');
 nc_new{'temp'}.units      = ncchar('degrees celsius [c]');
 nc_new{'temp'}.FillValue_ = -10e20;
+%% Zeta
+nc_new{'zeta'}           = ncfloat('time', 'eta_rho', 'xi_rho');
+nc_new{'zeta'}.long_name = ncchar('averaged free-surface [Fixed in 0.1 m]');
+nc_new{'zeta'}.units     = ncchar('meter second-1');
+nc_new{'zeta'}.field     = ncchar('free-surface, scalar, series');
 %% WRITE VARIABLES
-nc_new{'time'}(:)        = nc_t;
+nc_new{'scrum_time'}(:)  = nc_t;
 nc_new{'mask'}(:, :)     = mask;
 nc_new{'h'}(:, :)        = h;
 nc_new{'lat_rho'}(:, :)  = squeeze(rho_lat(1, 1, :, :));
@@ -126,6 +139,7 @@ nc_new{'u'}(:, :)        = u_rho;
 nc_new{'w'}(:, :)        = w_rho;
 nc_new{'salinity'}(:, :) = sal_rho;
 nc_new{'temp'}(:, :)     = temp_rho;
+nc_new{'zeta'}(:, :)     = zeta;
 %% Global information
 str = ['ROMS File: Information extrapolated from the outputs of the OFES model ' ...
        '(http://www.jamstec.go.jp) using Javier Porobic approach (more detail : https://github.com/jporobicg)'];
