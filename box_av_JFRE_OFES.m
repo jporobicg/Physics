@@ -33,7 +33,7 @@ if ~exist(file1, 'file')  % This part need to be run only ones. its related
     rho_la      = nc{'lat'}(:,:);
     rho_lo      = repmat(rho_lo.', length(rho_la), 1);
     rho_la      = repmat(rho_la, 1, size(rho_lo, 2));
-    sigmaValues = nc{'lev'}(:,:);
+    sigmaValues = 1 : (length(nc{'lev'}(:, :)) -1);
 
     %% this aproximation give me the approx depth at any sigma point  %%
     gridLayerDepths = zeros(length(sigmaValues), size(gridDepth, 1), size(gridDepth, 2));
@@ -89,7 +89,6 @@ if ~exist(file2, 'file') % This part need to be run only ones. its related
         % disp(['xi', num2str(length(tix))])
         ix{ibx}    = tix;
         iy{ibx}    = tiy;
-
         %% the area of the plygon is only important for production %%
         if strcmp(varn,'w')
             % this pas lat, lon to x, y.
@@ -110,12 +109,13 @@ else
 end
 
 
-Var_avg = repmat(nan,[nbox ntm nlay]);
+Var_avg = repmat(nan, [nbox ntm nlay]);
 file3   = ([num2str(year), '_', varn, '_JFRE_third_Step.mat']);
 if ~exist(file3, 'file') % This part need to be run only ones. its related
     for id = 1 : ntm
         varData      = squeeze(nc{varn} (id, :, :, :));
         time_varData = double(squeeze(varData));
+        time_varData(time_varData <= -999000000) = NaN;
         for layer = 1 : nlay
             for k = 1 : length(sigmaValues)
                 nVarD(layer, k, :, :) = squeeze(time_varData(k, :, :)) .* squeeze(layerValues(layer, k, :, :));
@@ -125,6 +125,12 @@ if ~exist(file3, 'file') % This part need to be run only ones. its related
         nVarD(nVarD == 0) = NaN;
         FvarD             = squeeze(nanmean(nVarD, 2));
         FvarD             = double(FvarD);
+        if strcmp(varn,'salinity')
+            FvarD = FvarD .* 1000 + 35;
+        end
+        if strcmp(varn,'w')
+            FvarD = FvarD ./ 100;
+        end
         % Grid the Data and interpolate
         for layer = 1 : nlay
             interpolatedVarData(layer,:, :) = griddata(rho_lo, rho_la, squeeze(FvarD(layer, :, :)), flo, fla);

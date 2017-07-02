@@ -53,7 +53,7 @@ function [T, tims] = transport_JFRE_OFES(vert, pt1, pt2, dlev, dinc, rimn, year,
         rho_la      = nc{'lat'}(:,:);
         rho_lo      = repmat(rho_lo.', length(rho_la), 1);
         rho_la      = repmat(rho_la, 1, size(rho_lo, 2));
-        sigmaValues = nc{'lev'}(:,:);       % this is the number of sigma-values layers
+        sigmaValues = 1 : (length(nc{'lev'}(:,:)) - 1);       % this is the number of sigma-values layers
 
         %% this aproximation give me the approx depth at any sigma point  %%
         gridLayerDepths = zeros(length(sigmaValues), size(gridDepth, 1), size(gridDepth, 2));
@@ -175,6 +175,9 @@ function [T, tims] = transport_JFRE_OFES(vert, pt1, pt2, dlev, dinc, rimn, year,
         for id = 1 : ntm
             u     = squeeze(nc{'u'} (id, :, :, :));
             v     = squeeze(nc{'v'} (id, :, :, :));
+            %% from cm/s to m/s (OFES output)
+            u     = u ./ 100;
+            v     = v ./ 100;
             U     = zeros(nlay, ngrd);
             V     = zeros(nlay, ngrd);
             udata = squeeze(u);
