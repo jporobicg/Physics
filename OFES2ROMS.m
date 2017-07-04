@@ -1,4 +1,4 @@
-function OFES2ROMS(fnm, gfn, grid)
+function OFES2ROMS(fnm, gfn)
 %% Function to extrapolate outpust from the OFES model to ROMS
 % The main purpose of this code is to translate from the OFES grid  to the ROMS
 % grid. Also, this code passes the variables from the grid of OFES to the grid of
@@ -16,7 +16,7 @@ function OFES2ROMS(fnm, gfn, grid)
 
 %% Open File and variables
 nc     = netcdf(fnm);
-ncg    = netcdf(grid);
+%%ncg    = netcdf(grid);
 lat    = nc{'lat'}(:);
 lon    = nc{'lon'}(:) - 360;
 levels = 1 : length(nc{'lev'}(:));
@@ -28,7 +28,7 @@ u      = nc{'u'}(:, :);
 w      = nc{'u'}(:, :);
 sal    = nc{'salinity'}(:,:);
 tem    = nc{'temp'}(:,:);
-h      = ncg{'ht'}(:);
+h      = nc{'h'}(:);
 nc_t   = nc{'time'}(:);
 nc_t   = nc_t  - 693961; % days since 1900 - 01 - 01
 nc_t   = nc_t * 86400; % time in seconds

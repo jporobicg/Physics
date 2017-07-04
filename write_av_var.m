@@ -18,10 +18,10 @@ ntm = length(tims);
 nlv = size(temp,3);
 
 
-if min(tims) > 10000
-   t90  = greg2time([1990 1 1 10 0 0]);
-   tims = tims-t90;
-end
+% if min(tims) > 10000
+%    t90  = greg2time([1990 1 1 10 0 0]);
+%    tims = tims-t90;
+% end
 
 nc = netcdf(fnm,'noclobber');
 
@@ -36,8 +36,8 @@ ncdim('boxes', nbx, nc);
 % time in seconds
 nc{'time'}           = ncdouble('time');
 nc{'time'}.long_name = 'time';
-nc{'time'}.units     = 'seconds since 2000-01-01 00:00:00 +4';
-nc{'time'}.dt        = 86400;
+nc{'time'}.units     = 'days since 0001-01-01 00:00:00';
+nc{'time'}.dt        = 1;
 % polygons
 nc{'boxes'}           = ncint('boxes');
 nc{'boxes'}.long_name = 'Box IDs';
@@ -77,7 +77,7 @@ nc.source     = '';
 nc.comment    = '';
 
 % to mantain control and record
-his        = ['Created by Bec Gorton on modified by Javier Porobic' date];
+his        = ['Created by Bec Gorton and modified by Javier Porobic' date];
 nc.history = his;
 
 %% Data

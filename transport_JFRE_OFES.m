@@ -27,7 +27,7 @@
 
 function [T, tims] = transport_JFRE_OFES(vert, pt1, pt2, dlev, dinc, rimn, year, fnm)
 %fnm, gnc);
-    %% Global Variables  %%
+%% Global Variables  %%
     nc   = netcdf(fnm);
     %gncf = netcdf(gnc);
     dint = diff(dlev);
@@ -56,11 +56,11 @@ function [T, tims] = transport_JFRE_OFES(vert, pt1, pt2, dlev, dinc, rimn, year,
         sigmaValues = 1 : (length(nc{'lev'}(:,:)) - 1);       % this is the number of sigma-values layers
 
         %% this aproximation give me the approx depth at any sigma point  %%
-        gridLayerDepths = zeros(length(sigmaValues), size(gridDepth, 1), size(gridDepth, 2));
+        gridLayerDepths = zeros((length(sigmaValues) + 1), size(gridDepth, 1), size(gridDepth, 2));
         for i = 1 : size(gridDepth, 1)
             for j = 1 : size(gridDepth, 2)
-                gridLayerDepths( :,  i, j) = sigma2zeta(gridDepth(i, j), 20, 5 , 0.6, length(sigmaValues)) ...
-                    *  - 1;
+                gridLayerDepths( :,  i, j) = [0 fliplr(sigma2zeta(gridDepth(i, j), 20, 5 , 0.6, length(sigmaValues)) ...
+                                                       *  - 1)];
             end
         end
         layerValues = nan(nlay, length(sigmaValues), size(gridDepth, 1), size(gridDepth, 2));
@@ -70,12 +70,8 @@ function [T, tims] = transport_JFRE_OFES(vert, pt1, pt2, dlev, dinc, rimn, year,
                     for k = 1 : length(sigmaValues)
                         minLayer = dlev(layer);
                         maxLayer = dlev(layer + 1);
-                        if k == length(sigmaValues)
-                            minSigma = 0;
-                        else
-                            minSigma = gridLayerDepths(k + 1, i, j);
-                        end
-                        maxSigma = gridLayerDepths(k, i, j);
+                        minSigma = gridLayerDepths(k, i, j);
+                        maxSigma = gridLayerDepths(k + 1, i, j);
                         if minLayer < maxSigma && maxLayer > minSigma
                             layerValues(layer, k, i, j) = 1;
                         end
