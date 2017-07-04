@@ -25,11 +25,11 @@
 %
 % USAGE: [T,bxid,bxnet] = transport_curvi(pt1,pt2,lr,dinc,rimn);
 
-function [T, tims] = transport_JFRE_OFES(vert, pt1, pt2, dlev, dinc, rimn, year, ...
-                                         fnm, gnc);
+function [T, tims] = transport_JFRE_OFES(vert, pt1, pt2, dlev, dinc, rimn, year, fnm)
+%fnm, gnc);
     %% Global Variables  %%
     nc   = netcdf(fnm);
-    gncf = netcdf(gnc);
+    %gncf = netcdf(gnc);
     dint = diff(dlev);
     nlay = length(dint);
     tims = nc{'time'}(:);
@@ -42,12 +42,12 @@ function [T, tims] = transport_JFRE_OFES(vert, pt1, pt2, dlev, dinc, rimn, year,
     if nargin < 4 | isempty(dinc)
         dinc = 0.1;
     end
-    file1 = ([num2str(year),'_JFRE_first_Step.mat']);
+    file1 = (['1st_JFRE_first_Step.mat']);
     if ~exist(file1, 'file')  % This part need to be run only ones. its related
                               % with the general model configuration.
         disp(['Using hydro file ' fnm]);
         %% Mods
-        gridDepth   = gncf{'ht'}(:, :);
+        gridDepth   = nc{'h'}(:, :);
         gridDepth(gridDepth == -999000000) = nan;
         rho_lo      = nc{'lon'}(:,:) - 360;
         rho_la      = nc{'lat'}(:,:);
@@ -93,7 +93,7 @@ function [T, tims] = transport_JFRE_OFES(vert, pt1, pt2, dlev, dinc, rimn, year,
     ndps  = length(sigmaValues);
     nfc   = size(pt1, 1);
     T     = repmat(nan, [nfc ntm nlay]);
-    file2=([num2str(year),'_JFRE_second_Step.mat']);
+    file2=(['2nd_JFRE_second_Step.mat']);
     if ~exist(file2, 'file')  % This part need to be run only ones. its related
                               % with the general model configuration.
         disp('Creating new file JFRE_Second_Step.mat')

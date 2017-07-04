@@ -8,10 +8,10 @@
 % grid = Name of the grid netcdf file for the ofes model
 % sfn  = Name of the file to be saved
 % USAGE: resolutionUp(fnm,grid);
-function resolutionUp(fnm, grid)
-
+function OFES_HR(fnm, grid, sfn)
+disp(['Increasing resoution OFES file [', fnm, ' ]'])
 %% reading variables
-fil     =netcdf(fnm)
+fil     = netcdf(fnm);
 ncg     = netcdf(grid);
 lat_ori = fil{'lat'}( : );
 lon_ori = fil{'lon'}( : );
@@ -65,7 +65,7 @@ temp_ext = interpn(time_gd, lev_gd, lat_gd, lon_gd, tem, time_ngd, lev_ngd, lat_
 sal_ext  = interpn(time_gd, lev_gd, lat_gd, lon_gd, sal, time_ngd, lev_ngd, lat_ngd, lon_ngd);
 h_ext    = interpn(lat_h, lon_h, h, lat_h_new, lon_h_new);
 %% Creating NETCDF
-nc_new = netcdf.create(gfn, '64BIT_OFFSET');
+nc_new = netcdf.create(sfn, '64BIT_OFFSET');
 %% dimensions
 lat_dim  = netcdf.defDim(nc_new , 'lat', size(lat_ngd, 3));
 lev_dim  = netcdf.defDim(nc_new, 'lev', size(lev_gd, 2));
@@ -96,3 +96,5 @@ netcdf.putVar(nc_new, v_var, permute(v_ext, [4 3 2 1]));
 netcdf.putVar(nc_new, u_var, permute(u_ext, [4 3 2 1]));
 netcdf.putVar(nc_new, w_var, permute(w_ext, [4 3 2 1]));
 netcdf.close(nc_new)
+
+disp(['Done!...Saving New OFES file [', sfn, ' ]'])

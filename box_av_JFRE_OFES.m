@@ -14,20 +14,21 @@
 %
 % USAGE: [av,nav] = box_av_curvi(vert,varn,tims);
 
-function [av,nav] = box_av_JFRE_OFES(vert, varn, dlev, year,  fnm, gnc)
+function [av,nav] = box_av_JFRE_OFES(vert, varn, dlev, year,  fnm)
 nc   = netcdf(fnm);
-gncf = netcdf(gnc);
+%gncf = netcdf(gnc);
 tims = nc{'time'}(:);
 dint = diff(dlev);
 nlay = length(dint);
 ntm  = length(tims);
 nbox = length(vert);
 
-file1=([num2str(year),'Var_JFRE_first_Step.mat']);
+file1=(['Var_JFRE_first_Step.mat']);
 if ~exist(file1, 'file')  % This part need to be run only ones. its related
                           % with the general model configuration.
     disp(['Using hydro file ' fnm]);
-    gridDepth   = gncf{'ht'}(:, :);
+    %gridDepth   = gncf{'ht'}(:, :);
+    gridDepth   = nc{'h'}(:, :);
     gridDepth(gridDepth == -999000000) = nan;
     rho_lo      = nc{'lon'}(:,:) - 360;
     rho_la      = nc{'lat'}(:,:);
@@ -36,11 +37,10 @@ if ~exist(file1, 'file')  % This part need to be run only ones. its related
     sigmaValues = 1 : (length(nc{'lev'}(:, :)) -1);
 
     %% this aproximation give me the approx depth at any sigma point  %%
-    gridLayerDepths = zeros(length(sigmaValues), size(gridDepth, 1), size(gridDepth, 2));
+    gridLayerDepths = zeros((length(sigmaValues) + 1), size(gridDepth, 1), size(gridDepth, 2));
     for i = 1 : size(gridDepth, 1)
         for j = 1 : size(gridDepth, 2)
-            gridLayerDepths( :,  i, j) = sigma2zeta(gridDepth(i, j), 20, 5 , 0.6, length(sigmaValues)) ...
-                *  - 1;
+            gridLayerDepths( :,  i, j) = [0 fliplr(sigma2zeta(gridDepth(i, j), 20, 5 , 0.6, length(sigmaValues)) *  - 1)];
         end
     end
     layerValues = nan(nlay, length(sigmaValues), size(gridDepth, 1), size(gridDepth, 2));
@@ -50,12 +50,8 @@ if ~exist(file1, 'file')  % This part need to be run only ones. its related
                 for k = 1 : length(sigmaValues)
                     minLayer = dlev(layer);
                     maxLayer = dlev(layer + 1);
-                    if k == length(sigmaValues)
-                        minSigma = 0;
-                    else
-                        minSigma = gridLayerDepths(k + 1, i, j);
-                    end
-                    maxSigma = gridLayerDepths(k, i, j);
+                    minSigma = gridLayerDepths(k, i, j);
+                    maxSigma = gridLayerDepths(k + 1, i, j);
                     if minLayer < maxSigma && maxLayer > minSigma
                         layerValues(layer, k, i, j) = 1;
                     end
@@ -70,7 +66,7 @@ else
 end
 
 
-file2=([num2str(year),'_' , varn, '_JFRE_Second_Step.mat']);
+file2=([varn, '_JFRE_Second_Step.mat']);
 if ~exist(file2, 'file') % This part need to be run only ones. its related
                          % with the general model configuration.
     barea = zeros(nbox);
