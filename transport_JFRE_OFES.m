@@ -25,11 +25,11 @@
 %
 % USAGE: [T,bxid,bxnet] = transport_curvi(pt1,pt2,lr,dinc,rimn);
 
-function [T, tims] = transport_JFRE_OFES(vert, pt1, pt2, dlev, dinc, rimn, year, ...
-                                         fnm, gnc);
-    %% Global Variables  %%
+function [T, tims] = transport_JFRE_OFES(vert, pt1, pt2, dlev, dinc, rimn, year, fnm)
+%fnm, gnc);
+%% Global Variables  %%
     nc   = netcdf(fnm);
-    gncf = netcdf(gnc);
+    %gncf = netcdf(gnc);
     dint = diff(dlev);
     nlay = length(dint);
     tims = nc{'time'}(:);
@@ -42,25 +42,25 @@ function [T, tims] = transport_JFRE_OFES(vert, pt1, pt2, dlev, dinc, rimn, year,
     if nargin < 4 | isempty(dinc)
         dinc = 0.1;
     end
-    file1 = ([num2str(year),'_JFRE_first_Step.mat']);
+    file1 = (['1st_JFRE_first_Step.mat']);
     if ~exist(file1, 'file')  % This part need to be run only ones. its related
                               % with the general model configuration.
         disp(['Using hydro file ' fnm]);
         %% Mods
-        gridDepth   = gncf{'ht'}(:, :);
+        gridDepth   = nc{'h'}(:, :);
         gridDepth(gridDepth == -999000000) = nan;
         rho_lo      = nc{'lon'}(:,:) - 360;
         rho_la      = nc{'lat'}(:,:);
         rho_lo      = repmat(rho_lo.', length(rho_la), 1);
         rho_la      = repmat(rho_la, 1, size(rho_lo, 2));
-        sigmaValues = nc{'lev'}(:,:);       % this is the number of sigma-values layers
+        sigmaValues = 1 : (length(nc{'lev'}(:,:)) - 1);       % this is the number of sigma-values layers
 
         %% this aproximation give me the approx depth at any sigma point  %%
-        gridLayerDepths = zeros(length(sigmaValues), size(gridDepth, 1), size(gridDepth, 2));
+        gridLayerDepths = zeros((length(sigmaValues) + 1), size(gridDepth, 1), size(gridDepth, 2));
         for i = 1 : size(gridDepth, 1)
             for j = 1 : size(gridDepth, 2)
-                gridLayerDepths( :,  i, j) = sigma2zeta(gridDepth(i, j), 20, 5 , 0.6, length(sigmaValues)) ...
-                    *  - 1;
+                gridLayerDepths( :,  i, j) = [0 fliplr(sigma2zeta(gridDepth(i, j), 20, 5 , 0.6, length(sigmaValues)) ...
+                                                       *  - 1)];
             end
         end
         layerValues = nan(nlay, length(sigmaValues), size(gridDepth, 1), size(gridDepth, 2));
@@ -70,12 +70,8 @@ function [T, tims] = transport_JFRE_OFES(vert, pt1, pt2, dlev, dinc, rimn, year,
                     for k = 1 : length(sigmaValues)
                         minLayer = dlev(layer);
                         maxLayer = dlev(layer + 1);
-                        if k == length(sigmaValues)
-                            minSigma = 0;
-                        else
-                            minSigma = gridLayerDepths(k + 1, i, j);
-                        end
-                        maxSigma = gridLayerDepths(k, i, j);
+                        minSigma = gridLayerDepths(k, i, j);
+                        maxSigma = gridLayerDepths(k + 1, i, j);
                         if minLayer < maxSigma && maxLayer > minSigma
                             layerValues(layer, k, i, j) = 1;
                         end
@@ -93,7 +89,7 @@ function [T, tims] = transport_JFRE_OFES(vert, pt1, pt2, dlev, dinc, rimn, year,
     ndps  = length(sigmaValues);
     nfc   = size(pt1, 1);
     T     = repmat(nan, [nfc ntm nlay]);
-    file2=([num2str(year),'_JFRE_second_Step.mat']);
+    file2=(['2nd_JFRE_second_Step.mat']);
     if ~exist(file2, 'file')  % This part need to be run only ones. its related
                               % with the general model configuration.
         disp('Creating new file JFRE_Second_Step.mat')
@@ -175,6 +171,9 @@ function [T, tims] = transport_JFRE_OFES(vert, pt1, pt2, dlev, dinc, rimn, year,
         for id = 1 : ntm
             u     = squeeze(nc{'u'} (id, :, :, :));
             v     = squeeze(nc{'v'} (id, :, :, :));
+            %% from cm/s to m/s (OFES output)
+            u     = u ./ 100;
+            v     = v ./ 100;
             U     = zeros(nlay, ngrd);
             V     = zeros(nlay, ngrd);
             udata = squeeze(u);

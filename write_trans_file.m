@@ -17,12 +17,12 @@ end
 %disp('Check "time" units are appropriate')
 
 %tims
-length(tims);
-if min(tims)>10000
-    %disp('*** Converting from time0 of 1900 to 1990')
-  t90 = greg2time([1990 1 1 10 0 0]);
-  tims = tims-t90;
-end
+% length(tims);
+% if min(tims)>10000
+%     %disp('*** Converting from time0 of 1900 to 1990')
+%   t90 = greg2time([1990 1 1 10 0 0]);
+%   tims = tims-t90;
+% end
 
 ntm = length(tims);
 if size(T,2) ~= ntm
@@ -66,8 +66,8 @@ ncdim('faces', nfc, nc);
 
 nc{'time'} = ncdouble('time');
 nc{'time'}.long_name = 'time';
-nc{'time'}.units = 'seconds since 2000-01-01 00:00:00 +4';
-nc{'time'}.dt = 86400;
+nc{'time'}.units = 'days since 0001-01-01 00:00:00';
+nc{'time'}.dt = 1;
 
 nc{'faces'} = ncint('faces');
 nc{'faces'}.long_name = 'Face IDs';
