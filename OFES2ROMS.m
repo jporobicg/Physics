@@ -21,7 +21,7 @@ lat    = netcdf.getVar(nc, netcdf.inqVarID(nc, 'lat'));
 lon    = netcdf.getVar(nc, netcdf.inqVarID(nc,'lon')) - 360;
 levels = 1 : length(netcdf.getVar(nc, netcdf.inqVarID(nc,'lev')));
 s_rho  = tsmovavg(levels, 's', 2);
-s_rho  = s_rho(~isnan(s_rho));
+s_rho  = s_rho(~isnan(s_rho)); % av2(levels) if no library available
 months = 1 : length(netcdf.getVar(nc, netcdf.inqVarID(nc,'time')));
 v      = netcdf.getVar(nc, netcdf.inqVarID(nc,'v'));
 u      = netcdf.getVar(nc, netcdf.inqVarID(nc,'u'));
@@ -32,7 +32,7 @@ h      = netcdf.getVar(nc, netcdf.inqVarID(nc,'h'));
 nc_t   = netcdf.getVar(nc, netcdf.inqVarID(nc,'time'));
 nc_t   = nc_t  - 693961; % days since 1900 - 01 - 01
 nc_t   = nc_t * 86400; % time in seconds
-netcdf.close(fnm);
+netcdf.close(nc);
 %% removing nan and fill values
 v(v  == -999000000 | isnan(v)) = 0;
 u(u  == -999000000 | isnan(u)) = 0;
@@ -109,7 +109,7 @@ NC_GLOBAL = netcdf.getConstant('NC_GLOBAL'); % constant
 %% VAR AND ATRIBUTES
 var_scrum_time =  netcdf.defVar(nc_new, 'scrum_time', 'double', time);
 var_mask       =  netcdf.defVar(nc_new, 'mask', 'float', [xi_rho eta_rho]);
-var_h          =  netcdf.defVar(nc_new, 'h', 'float', [eta_rho  xi_rho]);
+var_h          =  netcdf.defVar(nc_new, 'h', 'float', [xi_rho eta_rho]);
 var_lat_rho    =  netcdf.defVar(nc_new, 'lat_rho', 'float', [xi_rho eta_rho]);
 var_lon_rho    =  netcdf.defVar(nc_new, 'lon_rho', 'float', [xi_rho eta_rho]);
 var_v          =  netcdf.defVar(nc_new, 'v', 'float', [xi_rho eta_rho s_rho time]);
@@ -117,7 +117,7 @@ var_u          =  netcdf.defVar(nc_new, 'u', 'float', [xi_rho eta_rho s_rho time
 var_w          =  netcdf.defVar(nc_new, 'w', 'float', [xi_rho eta_rho s_rho time]);
 var_salinity   =  netcdf.defVar(nc_new, 'salinity', 'float', [xi_rho eta_rho s_rho time]);
 var_temp       =  netcdf.defVar(nc_new, 'temp', 'float', [xi_rho eta_rho s_rho time]);
-var_zeta       =  netcdf.defVar(nc_new, 'zeta', 'float', [time xi_rho eta_rho]);
+var_zeta       =  netcdf.defVar(nc_new, 'zeta', 'float', [xi_rho eta_rho time]);
 var_pm         =  netcdf.defVar(nc_new, 'pm', 'float', [xi_rho eta_rho]);
 var_pn         =  netcdf.defVar(nc_new, 'pn', 'float', [xi_rho eta_rho]);
 %netcdf.reDef(nc_new)
