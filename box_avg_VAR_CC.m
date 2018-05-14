@@ -59,7 +59,6 @@ else
     disp(['Loading - ', file1])
     load(file1)
 end
-gua='/home/demiurgo/Documents/PhD/Oceanography/projections/CC_output/'
 
 file2=([gdirec, varn, '_CC_Second_Step.mat']);
 if ~exist(file2, 'file') % This part need to be run only ones. its related
