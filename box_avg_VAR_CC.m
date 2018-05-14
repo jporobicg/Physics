@@ -99,7 +99,7 @@ else
 end
 
 Var_avg = repmat(nan, [nbox ntm nlay]);
-file3   = ([gdirec, varn, '_CC_third_Step.mat']);
+file3   = ([gdirec, year, varn, '_CC_third_Step.mat']);
 if ~exist(file3, 'file') % This part need to be run only ones. its related
     for id = 1 : ntm
         varData      = squeeze(nc{varn} (id, :, :, :));
